@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claimlens"
+version = "0.1.0"
+description = "Privacy-first, local-first CV and résumé claim verification toolkit"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [{name = "ClaimLens contributors"}]
+dependencies = ["pypdf>=5.0", "python-docx>=1.1", "openpyxl>=3.1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.7"]
+
+[project.scripts]
+claimlens = "claimlens.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
