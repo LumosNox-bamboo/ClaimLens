@@ -59,7 +59,7 @@ def _sections(text: str) -> list[tuple[str, str]]:
 
 
 def _split_numbered(body: str) -> list[str]:
-    parts = re.split(r"(?=(?<!\d)(?:[1-9]\.|0?[1-9]｜)\s*)", body)
+    parts = re.split(r"(?=(?<!\\S)(?:[1-9]\\.|0?[1-9]｜)\\s+)", body)
     return [_clean(part) for part in parts if _clean(part)]
 
 
