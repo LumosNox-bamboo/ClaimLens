@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 
+from .batch import run_batch
 from .claims import extract_claims
 from .exporters import export_claims
 from .identity import ensure_salt
@@ -82,6 +83,20 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_batch(args: argparse.Namespace) -> int:
+    salt = ensure_salt(args.salt_file)
+    candidates, claims, failures = run_batch(
+        args.input, args.out, salt, args.privacy, args.filename
+    )
+    print(
+        f"batch complete: {candidates} candidate(s), {claims} claim(s), "
+        f"{failures} failure(s); no network access performed"
+    )
+    print(f"LOCAL ONLY identity map: {args.out / '00_LOCAL_ONLY' / 'candidate_map.xlsx'}")
+    print(f"Codex-ready redacted package: {args.out / '01_CODEX_READY'}")
+    return 1 if failures else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="claimlens", description="Privacy-first, local-first CV claim verification toolkit")
     sub = p.add_subparsers(dest="command", required=True)
@@ -102,6 +117,12 @@ def build_parser() -> argparse.ArgumentParser:
     vf = sub.add_parser("verify")
     vf.add_argument("path", type=Path)
     vf.set_defaults(func=cmd_verify)
+    bt = sub.add_parser("batch", parents=[common])
+    bt.add_argument(
+        "--filename", default="简历.pdf",
+        help="CV filename to discover recursively (default: 简历.pdf)",
+    )
+    bt.set_defaults(func=cmd_batch)
     return p
 
 
