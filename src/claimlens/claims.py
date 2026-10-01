@@ -184,8 +184,15 @@ def extract_claims(text: str, candidate_id: str, source_file: str = "") -> list[
                     )
 
         elif section == "awards":
-            graduation = "本科及硕士毕业均获上海市优秀毕业生（Top 2%）"
-            award_body = body.replace(graduation, "").strip()
+            trailing_awards = []
+            award_body = body
+            trailing_pattern = re.compile(
+                r"((?:本科|硕士|博士|毕业)[^。；]{0,80}(?:优秀毕业生|荣誉毕业生|graduate honor)[^。；]{0,40})",
+                re.I,
+            )
+            for match in trailing_pattern.finditer(body):
+                trailing_awards.append(_clean(match.group(1)))
+                award_body = award_body.replace(match.group(1), " ")
             for item in _split_year_items(award_body):
                 if re.search(
                     r"奖|优秀|Winner|Gold|Silver|Top|名|入选|award|prize|medal|competition|大赛|竞赛",
@@ -205,12 +212,12 @@ def extract_claims(text: str, candidate_id: str, source_file: str = "") -> list[
                         award_name=item[:300] if claim_type == "award" else "",
                         verification_priority="high",
                     )
-            if "本科及硕士毕业均获上海市优秀毕业生" in body:
+            for item in trailing_awards:
                 add(
                     "award",
-                    graduation,
+                    item,
                     section,
-                    award_name="上海市优秀毕业生",
+                    award_name=item[:300],
                     verification_priority="high",
                 )
 
