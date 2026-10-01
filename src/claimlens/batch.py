@@ -9,6 +9,7 @@ from openpyxl import Workbook
 
 from .claims import extract_claims_v2
 from .identity import candidate_id as make_candidate_id
+from .diagnostics import write_codex_safe
 from .parsers import embedded_image_count, extract_text
 from .privacy import detect_pii, pii_summary, redact_text
 
@@ -73,10 +74,12 @@ def run_batch(
     filename: str = "简历.pdf",
 ) -> tuple[int, int, int]:
     local_dir = out / "00_LOCAL_ONLY"
-    diagnostics_dir = out / "01_EXTRACTION_DIAGNOSTICS"
+    diagnostics_dir = out / "01_EXTRACTION_DIAGNOSTICS" / "LOCAL_ONLY"
+    safe_dir = out / "01_EXTRACTION_DIAGNOSTICS" / "CODEX_SAFE"
     codex_dir = out / "02_CODEX_READY"
     local_dir.mkdir(parents=True, exist_ok=True)
     diagnostics_dir.mkdir(parents=True, exist_ok=True)
+    safe_dir.mkdir(parents=True, exist_ok=True)
     codex_dir.mkdir(parents=True, exist_ok=True)
 
     candidates: list[BatchCandidate] = []
@@ -182,6 +185,7 @@ def run_batch(
             )
 
     _write_local_map(candidates, local_dir / "candidate_map.xlsx")
+    write_codex_safe(diagnostics_dir, safe_dir)
     summary = {
         "source_root": str(root),
         "cv_filename": filename,
