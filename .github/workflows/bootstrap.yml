@@ -1,0 +1,21 @@
+name: Materialize ClaimLens P0
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Materialize tested P0 tree
+        run: |
+          base64 -d claimlens-p0.tar.gz.b64 > /tmp/claimlens-p0.tar.gz
+          tar -xzf /tmp/claimlens-p0.tar.gz
+          rm -f claimlens-p0.tar.gz.b64 .github/workflows/bootstrap.yml
+          git config user.name "ClaimLens CI"
+          git config user.email "claimlens-ci@users.noreply.github.com"
+          git add -A
+          git commit -m "Build privacy-first ClaimLens P0"
+          git push
