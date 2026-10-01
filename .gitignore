@@ -3,6 +3,8 @@ resumes/
 input/
 output/
 review/
+batch_review*/
+03_REPORTS/
 *.candidate.xlsx
 *claims*.xlsx
 *report*.xlsx
