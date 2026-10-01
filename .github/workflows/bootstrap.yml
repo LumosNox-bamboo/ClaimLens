@@ -8,7 +8,6 @@ permissions:
   contents: write
 jobs:
   materialize:
-    if: ${{ hashFiles('.bootstrap/aa') != '' && hashFiles('.bootstrap/ad') != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
