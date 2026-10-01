@@ -43,3 +43,6 @@ batch_review_*/
 candidate_map.xlsx
 *.claims.json
 *.verification.json
+
+# Offline identity-linked report bundles
+03_REPORTS/

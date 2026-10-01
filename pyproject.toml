@@ -34,3 +34,4 @@ select = ["E4", "E7", "E9", "F"]
 
 [tool.setuptools.package-data]
 "claimlens.verification" = ["*.schema.json"]
+"claimlens.reporting" = ["assets/*", "*.mjs"]

@@ -103,6 +103,14 @@ def cmd_verify_batch(args: argparse.Namespace) -> int:
     return 1 if report["processing_failures"] else 0
 
 
+def cmd_report(args: argparse.Namespace) -> int:
+    from .reporting.generate import generate
+    report = generate(args.batch, args.out, not args.omit_application_id, args.xlsx_node, args.xlsx_modules)
+    print(json.dumps({k: report[k] for k in ("candidates_rendered", "claims_rendered", "high_value_review_queue_count", "extraction_issue_count", "cv_update_count", "xlsx_generated")}))
+    print("data_integrity_warning_count", len(report["data_integrity_warnings"]))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="claimlens", description="Privacy-first, local-first CV claim verification toolkit")
     sub = p.add_subparsers(dest="command", required=True)
@@ -128,6 +136,13 @@ def build_parser() -> argparse.ArgumentParser:
     vb.add_argument("--out", type=Path, required=True)
     vb.add_argument("--pilot", action="store_true")
     vb.set_defaults(func=cmd_verify_batch)
+    rp = sub.add_parser("report", help="Generate offline named and anonymous review reports")
+    rp.add_argument("batch", type=Path)
+    rp.add_argument("--out", type=Path)
+    rp.add_argument("--omit-application-id", action="store_true")
+    rp.add_argument("--xlsx-node", type=Path, required=True)
+    rp.add_argument("--xlsx-modules", type=Path, required=True)
+    rp.set_defaults(func=cmd_report)
     bt = sub.add_parser("batch", parents=[common])
     bt.add_argument(
         "--filename", default="简历.pdf",
