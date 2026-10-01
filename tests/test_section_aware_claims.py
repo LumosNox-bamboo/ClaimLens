@@ -8,7 +8,7 @@ def test_section_aware_mixed_cv_extraction():
 代表性论文 1. A. Author. Synthetic cohort study. Example Medicine. 2026. DOI: 10.1234/ABC.1. 2. B. Author. Another study. Accepted 2026.
 在研第一作者论文 • A Synthetic Pending Study About Pain Outcomes. • Another Synthetic Pending Study About Cohorts.
 人工智能与科研系统开发 01｜Research OS｜科研工作台。 02｜AI Agent｜挑战赛工作流。
-荣誉、竞赛与学术奖励 2026 Example Innovation Competition 第二名。 2025 Example Society 大会优秀壁报。 本科及硕士毕业均获上海市优秀毕业生（Top 2%）。
+荣誉、竞赛与学术奖励 2026 Example Innovation Competition 第二名。 2025 Example Society 大会优秀壁报。 本科及硕士阶段均获示例市优秀毕业生（Top 5%）。
 国际学术交流 2026｜Example World Congress, Berlin｜口头报告及壁报展示。
 专业资质与培训经历 医师资格：已取得医师资格证书；专业资质：Example ICD-11 课程；Example Training 培训。 临床心理实践：示例经历。 语言：中文。"""
     claims = extract_claims(text, "C-SYN", ".pdf")
@@ -45,7 +45,7 @@ def test_education_date_range_kept_together():
 def test_special_award_wording_is_kept():
     text = (
         "荣誉、竞赛与学术奖励 2025 Example Society 学术年会大会优秀壁报。 "
-        "本科及硕士毕业均获上海市优秀毕业生（Top 2%）。"
+        "本科及硕士阶段均获示例市优秀毕业生（Top 5%）。"
     )
     claims = extract_claims(text, "C-SYN")
     assert len(claims) == 2
