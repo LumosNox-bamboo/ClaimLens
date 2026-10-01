@@ -11,9 +11,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Materialize tested P0 tree
         run: |
-          base64 -d claimlens-p0.tar.gz.b64 > /tmp/claimlens-p0.tar.gz
+          cat .bootstrap/aa .bootstrap/ab .bootstrap/ac .bootstrap/ad | tr -d '\n' | base64 -d > /tmp/claimlens-p0.tar.gz
           tar -xzf /tmp/claimlens-p0.tar.gz
-          rm -f claimlens-p0.tar.gz.b64 .github/workflows/bootstrap.yml
+          rm -rf .bootstrap claimlens-p0.tar.gz.b64 .bootstrap-trigger .github/workflows/bootstrap.yml
           git config user.name "ClaimLens CI"
           git config user.email "claimlens-ci@users.noreply.github.com"
           git add -A
