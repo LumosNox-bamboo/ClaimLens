@@ -9,6 +9,7 @@ from .batch import run_batch
 from .claims import extract_claims_v2
 from .exporters import export_claims
 from .diagnostics import reject_unsafe_codex_input, write_codex_safe
+from .health import doctor_rows
 from .identity import ensure_salt
 from .identity import candidate_id as make_candidate_id
 from .models import PrivacyMode
@@ -112,6 +113,26 @@ def cmd_guard_codex(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_doctor(args: argparse.Namespace) -> int:
+    rows = doctor_rows()
+    width = max(len(label) for label, _ in rows)
+    for label, value in rows:
+        print(f"{label:<{width}}  {value or '-'}")
+    return 0 if dict(rows).get("Privacy guard") == "PASS" else 2
+
+
+def cmd_privacy_check(args: argparse.Namespace) -> int:
+    try:
+        reject_unsafe_codex_input(args.path)
+    except ValueError as exc:
+        print("BLOCKED")
+        print(f"Reason: {exc}")
+        return 2
+    print("SAFE TO SHARE WITH EXTERNAL AGENT")
+    print(f"Artifact: {args.path}")
+    return 0
+
+
 def cmd_batch(args: argparse.Namespace) -> int:
     salt = ensure_salt(args.salt_file)
     candidates, claims, failures = run_batch(
@@ -174,6 +195,11 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument("--xlsx-node", type=Path, required=True)
     rp.add_argument("--xlsx-modules", type=Path, required=True)
     rp.set_defaults(func=cmd_report)
+    dr = sub.add_parser("doctor", help="Check installation, source checkout, and privacy guard")
+    dr.set_defaults(func=cmd_doctor)
+    pc = sub.add_parser("privacy-check", help="Check whether an artifact crosses the safe sharing boundary")
+    pc.add_argument("path", type=Path)
+    pc.set_defaults(func=cmd_privacy_check)
     dg = sub.add_parser("diagnose", help="Build content-free CODEX_SAFE diagnostics from local extraction diagnostics")
     dg.add_argument("path", type=Path)
     dg.add_argument("--out", type=Path, default=Path("CODEX_SAFE"))
