@@ -10,7 +10,7 @@ from openpyxl import Workbook
 from .claims import extract_claims
 from .identity import candidate_id as make_candidate_id
 from .parsers import embedded_image_count, extract_text
-from .privacy import pii_summary, redact_text
+from .privacy import detect_pii, pii_summary, redact_text
 
 
 @dataclass
@@ -88,7 +88,27 @@ def run_batch(
             text = extract_text(path)
             _, findings = redact_text(text, privacy_mode)
             claims = extract_claims(text, cid, path.suffix)
-            public_claims = [c.row() for c in claims if c.verification_scope == "public"]
+            public_claims = []
+            for claim in claims:
+                if claim.verification_scope != "public":
+                    continue
+                row = claim.row()
+                outbound = " ".join(
+                    str(row.get(key, ""))
+                    for key in (
+                        "claim_text", "title", "organization", "journal", "doi",
+                        "patent_number", "award_name", "authors", "verification_query",
+                    )
+                )
+                forbidden = [
+                    finding for finding in detect_pii(outbound)
+                    if finding.kind != "claim_author_list"
+                ]
+                if forbidden:
+                    # Defense in depth: no public verification payload is emitted when
+                    # residual PII is detected after claim-level redaction.
+                    continue
+                public_claims.append(row)
             payload = {
                 "candidate_id": cid,
                 "application_id": app_id,
@@ -145,7 +165,7 @@ def run_batch(
         "failed": failures,
         "claims_extracted": total_claims,
         "network_access_performed": False,
-        "codex_ready_contains_names": False,
+        "codex_ready_contains_local_identity_map": False,
         "note": "00_LOCAL_ONLY contains identifying mappings and must remain local.",
     }
     (local_dir / "batch_summary.json").write_text(
