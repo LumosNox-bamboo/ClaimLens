@@ -26,7 +26,7 @@ SPECS = [
     PatternSpec("qq", re.compile(r"(?i)(?:(?:QQ)\s*[:：]?\s*)[1-9]\d{4,11}")),
     PatternSpec("whatsapp", re.compile(r"(?i)(?:(?:whatsapp)\s*[:：]?\s*)\+?\d[\d ()-]{6,}\d")),
     PatternSpec("telegram", re.compile(r"(?i)(?:(?:telegram|tg)\s*[:：]?\s*)@[A-Z0-9_]{5,32}")),
-    PatternSpec("social_handle", re.compile(r"(?i)(?:(?:twitter|x|instagram|linkedin|github|微博|小红书)\s*[:：]?\s*)@?[A-Z0-9_.-]{3,40}"), "medium"),
+    PatternSpec("social_handle", re.compile(r"(?i)(?:(?:twitter|instagram|linkedin|github)\\s*[:：]\\s*@?[A-Z0-9_.-]{3,40}|(?:^|\\s)x\\s*[:：]\\s*@?[A-Z0-9_.-]{3,40}|(?:微博|小红书)\\s*[:：]\\s*@?[A-Z0-9_.-]{3,40})"), "medium"),
     PatternSpec("personal_url", re.compile(r"(?i)\bhttps?://[^\s<>()]+|\bwww\.[^\s<>()]+"), "medium"),
     PatternSpec("address", re.compile(r"(?im)(?:(?:home|postal|mailing|residential)?\s*address|家庭住址|家庭地址|通信地址|通讯地址|现住址|地址)\s*[:：]\s*[^\n]{5,160}")),
     PatternSpec("english_name", re.compile(r"(?im)^(?:(?:full\s*)?name)\s*[:：]\s*[A-Z][A-Za-z'’-]+(?:\s+[A-Z][A-Za-z'’-]+){1,4}\s*$")),
@@ -38,9 +38,19 @@ SPECS = [
 
 
 def detect_pii(text: str) -> list[PIIFinding]:
+    doi_spans = [
+        (m.start(), m.end())
+        for m in re.finditer(r"\\b10\\.\\d{4,9}/[-._;()/:A-Z0-9]+\\b", text, re.I)
+    ]
+
+    def inside_doi(start: int, end: int) -> bool:
+        return any(start >= a and end <= b for a, b in doi_spans)
+
     found: list[PIIFinding] = []
     for spec in SPECS:
         for match in spec.pattern.finditer(text):
+            if spec.kind == "phone" and inside_doi(match.start(), match.end()):
+                continue
             found.append(PIIFinding(spec.kind, match.group(0), match.start(), match.end(), spec.risk))
     # Prefer broad labelled spans (address/reference) and avoid duplicate overlapping replacements.
     found.sort(key=lambda x: (x.start, -(x.end - x.start)))
