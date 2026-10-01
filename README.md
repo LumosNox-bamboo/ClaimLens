@@ -26,6 +26,30 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e .
 ```
 
+## Safe quick start
+
+After installation, run the built-in health check before processing candidate material:
+
+```bash
+claimlens doctor
+```
+
+This reports the ClaimLens version, Python executable, actual imported package source, Git checkout/commit when available, working-tree state, and privacy-guard status. It is designed to catch a common failure mode where the repository has been updated but the shell is still running an older installed CLI.
+
+For batch processing, raw CVs remain local:
+
+```bash
+claimlens batch ./resumes --out ./batch_review
+```
+
+The batch output separates identifying/local diagnostics from content-free structural diagnostics. Before giving any artifact to an external agent, check it explicitly:
+
+```bash
+claimlens privacy-check ./batch_review/01_EXTRACTION_DIAGNOSTICS/CODEX_SAFE/corpus_summary.json
+```
+
+A safe artifact prints `SAFE TO SHARE WITH EXTERNAL AGENT`. Raw PDF/DOCX files, `resumes/`, `00_LOCAL_ONLY/`, `LOCAL_ONLY/`, candidate identity maps, and paths outside a `CODEX_SAFE` boundary are rejected. `guard-codex` remains available as a lower-level compatibility command.
+
 ## Try one CV locally
 
 Put one text-based PDF, DOCX, or TXT CV in the gitignored `resumes/` directory, for example `resumes/test.pdf`, then run:
@@ -86,6 +110,11 @@ pytest -q
 ```
 
 GitHub Actions runs lint and tests on Python 3.10–3.13.
+
+### Repository development workflow
+
+Development should happen on a feature branch rather than directly on `main`. Run synthetic tests and lint locally, then merge a completed feature in one consolidated change. Keep real CVs and batch outputs outside commits. This reduces accidental divergence between local and remote `main`, avoids competing edits to shared CLI code, and limits unnecessary CI/notification churn.
+
 
 ## Limitations
 
