@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClaimLens candidate verification 1.0",
+  "type": "object",
+  "required": [
+    "candidate_id",
+    "application_id",
+    "verification_version",
+    "verified_at",
+    "claims_total",
+    "results"
+  ],
+  "properties": {
+    "candidate_id": {
+      "type": "string"
+    },
+    "application_id": {
+      "type": "string"
+    },
+    "verified_at": {
+      "type": "string"
+    },
+    "verification_version": {
+      "const": "1.0"
+    },
+    "claims_total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "claim_id": {
+            "type": "string"
+          },
+          "claim_type": {
+            "type": "string"
+          },
+          "verification_notes": {
+            "type": "string"
+          },
+          "original_claim": {
+            "type": "object"
+          },
+          "verification_status": {
+            "enum": [
+              "VERIFIED",
+              "PARTIALLY_VERIFIED",
+              "CONFLICT",
+              "NOT_FOUND",
+              "DOCUMENT_REQUIRED",
+              "NEEDS_REVIEW"
+            ]
+          },
+          "matched_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "conflicting_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unverified_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence_strength": {
+            "enum": [
+              null,
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "source_name",
+                "source_type",
+                "url",
+                "accessed_at",
+                "evidence_strength",
+                "matched_fields",
+                "conflicting_fields",
+                "notes"
+              ],
+              "properties": {
+                "source_name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_type": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "url": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "accessed_at": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "notes": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence_strength": {
+                  "enum": [
+                    "A",
+                    "B",
+                    "C",
+                    "D"
+                  ]
+                },
+                "matched_fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "conflicting_fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "freshness_status": {
+            "enum": [
+              "CURRENT",
+              "CV_UPDATE_AVAILABLE",
+              "UNKNOWN"
+            ]
+          },
+          "suggested_cv_update": {
+            "type": [
+              "object",
+              "string",
+              "null"
+            ]
+          },
+          "journal_metrics": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "latest_jif": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "jif_year": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "metric_name": {
+                "const": "Journal Impact Factor"
+              },
+              "metric_source": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "metric_source_url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "metric_source_quality": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "claim_id",
+          "claim_type",
+          "verification_notes",
+          "original_claim",
+          "verification_status",
+          "matched_fields",
+          "conflicting_fields",
+          "unverified_fields",
+          "evidence_strength",
+          "evidence",
+          "freshness_status",
+          "suggested_cv_update",
+          "journal_metrics"
+        ]
+      }
+    }
+  }
+}

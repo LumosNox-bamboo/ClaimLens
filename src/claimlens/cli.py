@@ -97,6 +97,12 @@ def cmd_batch(args: argparse.Namespace) -> int:
     return 1 if failures else 0
 
 
+def cmd_verify_batch(args: argparse.Namespace) -> int:
+    from .verification.batch import run
+    report = run(args.input, args.out, limit=2 if args.pilot else None)
+    return 1 if report["processing_failures"] else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="claimlens", description="Privacy-first, local-first CV claim verification toolkit")
     sub = p.add_subparsers(dest="command", required=True)
@@ -117,6 +123,11 @@ def build_parser() -> argparse.ArgumentParser:
     vf = sub.add_parser("verify")
     vf.add_argument("path", type=Path)
     vf.set_defaults(func=cmd_verify)
+    vb = sub.add_parser("verify-batch", help="Verify prepared pseudonymous claims with checkpoints")
+    vb.add_argument("input", type=Path)
+    vb.add_argument("--out", type=Path, required=True)
+    vb.add_argument("--pilot", action="store_true")
+    vb.set_defaults(func=cmd_verify_batch)
     bt = sub.add_parser("batch", parents=[common])
     bt.add_argument(
         "--filename", default="简历.pdf",

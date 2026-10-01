@@ -37,3 +37,9 @@ dist/
 build/
 *.egg-info/
 .DS_Store
+
+# Local prepared candidate packages and verification evidence
+batch_review_*/
+candidate_map.xlsx
+*.claims.json
+*.verification.json

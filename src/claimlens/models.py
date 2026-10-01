@@ -16,6 +16,7 @@ class VerificationStatus(str, Enum):
     CONFLICT = "CONFLICT"
     NOT_FOUND = "NOT_FOUND"
     NEEDS_REVIEW = "NEEDS_REVIEW"
+    DOCUMENT_REQUIRED = "DOCUMENT_REQUIRED"
 
 
 @dataclass(frozen=True)
