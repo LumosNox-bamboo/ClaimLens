@@ -19,11 +19,32 @@ def build_review(claims_path: Path, out_path: Path) -> list[ReviewItem]:
     rows = json.loads(claims_path.read_text(encoding="utf-8"))
     items = []
     for row in rows:
-        fields = {k: row.get(k, "") for k in ("title", "year", "organization", "journal", "doi", "patent_number", "award_name", "verification_query") if row.get(k)}
-        items.append(ReviewItem(row["candidate_id"], row["claim_id"], row["claim_type"], fields, "Minimum fields proposed for public-source verification", False))
+        if row.get("verification_scope", "public") != "public":
+            continue
+        fields = {
+            k: row.get(k, "")
+            for k in (
+                "title", "year", "organization", "journal", "doi",
+                "patent_number", "award_name", "verification_query",
+            )
+            if row.get(k)
+        }
+        items.append(
+            ReviewItem(
+                row["candidate_id"],
+                row["claim_id"],
+                row["claim_type"],
+                fields,
+                "Minimum fields proposed for public-source verification",
+                False,
+            )
+        )
     payload = {
         "network_access": False,
-        "warning": "Review every outbound field before any future network verification. Pseudonymized data is not necessarily anonymous.",
+        "warning": (
+            "Review every outbound field before any future network verification. "
+            "Pseudonymized data is not necessarily anonymous."
+        ),
         "items": [asdict(x) for x in items],
     }
     out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
