@@ -2,10 +2,13 @@ name: Materialize ClaimLens P0
 on:
   push:
     branches: [main]
+    paths:
+      - ".bootstrap/**"
 permissions:
   contents: write
 jobs:
   materialize:
+    if: ${{ hashFiles('.bootstrap/aa') != '' && hashFiles('.bootstrap/ad') != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,7 +16,7 @@ jobs:
         run: |
           cat .bootstrap/aa .bootstrap/ab .bootstrap/ac .bootstrap/ad | tr -d '\n' | base64 -d > /tmp/claimlens-p0.tar.gz
           tar -xzf /tmp/claimlens-p0.tar.gz
-          rm -rf .bootstrap claimlens-p0.tar.gz.b64 .bootstrap-trigger .github/workflows/bootstrap.yml
+          rm -rf .bootstrap claimlens-p0.tar.gz.b64 .bootstrap-trigger
           git config user.name "ClaimLens CI"
           git config user.email "claimlens-ci@users.noreply.github.com"
           git add -A
