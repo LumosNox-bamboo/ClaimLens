@@ -40,3 +40,22 @@ def test_strict_removes_claim_author_list_but_verification_preserves_it():
     verification, _ = redact_text(text, "verification")
     assert "Alice Example" not in strict
     assert "Alice Example" in verification
+
+
+def test_doi_digits_are_not_redacted_as_phone():
+    text = "DOI: 10.1186/s12916-026-04851-7"
+    out, found = redact_text(text, "verification")
+    assert "10.1186/s12916-026-04851-7" in out
+    assert "phone" not in {x.kind for x in found}
+
+
+def test_plain_x_words_and_mexico_are_not_social_handles():
+    text = "Exposure-related outcomes. Mexico City, Mexico."
+    out, found = redact_text(text, "verification")
+    assert out == text
+    assert "social_handle" not in {x.kind for x in found}
+
+
+def test_explicit_social_handle_still_detected():
+    text = "GitHub: synthetic_user"
+    assert "social_handle" in kinds(text)
