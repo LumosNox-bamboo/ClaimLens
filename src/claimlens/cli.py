@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from .batch import run_batch
-from .claims import extract_claims
+from .claims import extract_claims_v2
 from .exporters import export_claims
 from .identity import ensure_salt
 from .identity import candidate_id as make_candidate_id
@@ -36,13 +36,14 @@ def cmd_extract(args: argparse.Namespace) -> int:
             text = extract_text(path)
             cid = make_candidate_id(path, salt)
             _, findings = redact_text(text, args.privacy)
-            claims = extract_claims(text, cid, path.suffix)
+            claims, diagnostics = extract_claims_v2(text, cid, path.suffix)
             all_claims.extend(claims)
+            withheld = sum(1 for d in diagnostics if d.get("action") != "PASS")
             image_count = embedded_image_count(path)
             privacy_manifest.append({"candidate_id": cid, "source_type": path.suffix.lower(), "pii_detected": pii_summary(findings), "embedded_images": image_count, "image_warning": bool(image_count), "claims": len(claims)})
             if image_count:
                 print(f"privacy warning {cid}: source document contains embedded image(s); images are not verifier inputs")
-            print(f"processed {cid}: {len(claims)} claim(s)")
+            print(f"processed {cid}: {len(claims)} accepted claim(s), {withheld} item(s) withheld by extraction quality gate")
         except Exception as exc:
             print(f"error processing one {path.suffix.lower()} document: {exc}", file=sys.stderr)
     paths = export_claims(all_claims, args.out)
@@ -93,7 +94,8 @@ def cmd_batch(args: argparse.Namespace) -> int:
         f"{failures} failure(s); no network access performed"
     )
     print(f"LOCAL ONLY identity map: {args.out / '00_LOCAL_ONLY' / 'candidate_map.xlsx'}")
-    print(f"Codex-ready redacted package: {args.out / '01_CODEX_READY'}")
+    print(f"Extraction diagnostics: {args.out / '01_EXTRACTION_DIAGNOSTICS'}")
+    print(f"Codex-ready redacted package: {args.out / '02_CODEX_READY'}")
     return 1 if failures else 0
 
 
