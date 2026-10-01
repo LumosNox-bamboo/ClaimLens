@@ -106,6 +106,9 @@ def reconstruct_document(text: str) -> list[LogicalItem]:
         if not current:
             current = [line]
             continue
+        if section in {"publications", "patents", "awards", "conferences"} and _looks_new_item(current[0]):
+            current.append(line)
+            continue
         joined = clean_line(" ".join(current))
         if _continuation_score(joined, line, section) >= 2:
             current.append(line)
@@ -153,6 +156,8 @@ def quality_gate(item: LogicalItem, claim_type: str) -> QualityDecision:
     if len(text) < 12:
         return QualityDecision("REVIEW", ["ORPHAN_FRAGMENT"])
     if claim_type == "publication":
+        if re.search(r"\b\d+\s+(?:peer[- ]reviewed\s+)?publications?\b|\bh[- ]?index\b|\bcitations?\b", text, re.I) and not DOI_RE.search(text):
+            return QualityDecision("REVIEW", ["AGGREGATE_PUBLICATION_SUMMARY"])
         signals = sum(bool(x) for x in (
             DOI_RE.search(text), YEAR_RE.search(text), PUB_SIGNAL.search(text),
             re.search(r"\b(?:journal|medicine|science|research|nature|cell|lancet|bmj)\b", text, re.I),
