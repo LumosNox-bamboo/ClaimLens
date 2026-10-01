@@ -42,6 +42,9 @@ class Claim:
     award_name: str = ""
     authors: str = ""
     verification_query: str = ""
+    verification_scope: str = "public"
+    verification_priority: str = "medium"
+    source_section: str = ""
     privacy_risk: str = "low"
     source_file: str = ""
 
