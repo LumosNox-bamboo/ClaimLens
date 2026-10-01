@@ -1,7 +1,8 @@
 from claimlens.privacy import detect_pii, redact_text
 
 
-def kinds(text): return {x.kind for x in detect_pii(text)}
+def kinds(text):
+    return {x.kind for x in detect_pii(text)}
 
 
 def test_english_pii():
