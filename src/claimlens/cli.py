@@ -48,6 +48,7 @@ def cmd_extract(args: argparse.Namespace) -> int:
     (args.out / "privacy_manifest.json").write_text(json.dumps(privacy_manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     build_review(paths[0], args.out / "privacy_review.json")
     print(f"wrote {len(all_claims)} claim(s) to {args.out}; no network access performed")
+    print(f"local visual review: {args.out / 'claims_review.html'}")
     return 0
 
 
