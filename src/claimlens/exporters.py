@@ -118,7 +118,7 @@ dd {{ margin: 3px 0 0; overflow-wrap: anywhere; }}
 .claim-id {{ font-size: .72rem; margin-top: 10px; }}
 </style></head><body><header>
 <h1>ClaimLens · Verification Review</h1>
-<p>Only factual claims selected for verification review are shown. Narrative profile, skills and project descriptions are excluded.</p>
+<p>Only factual claims selected for verification review are shown. Original CV text is not displayed; narrative profile, skills and project descriptions are excluded.</p>
 <div class="notice"><strong>Local preview.</strong> No network verification or CV upload occurs when opening this file.</div>
 <div>{summary}</div></header>{body}</body></html>"""
     path.write_text(html, encoding="utf-8")
