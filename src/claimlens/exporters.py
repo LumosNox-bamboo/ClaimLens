@@ -30,8 +30,8 @@ def export_claims(claims: list[Claim], out_dir: Path) -> tuple[Path, Path, Path]
     ws = wb.active
     ws.title = "claims"
     ws.append(CLAIM_HEADERS)
-    for cell in ws[1]: cell.font = Font(bold=True)
-    for row in rows: ws.append([row.get(h, "") for h in CLAIM_HEADERS])
+    for cell in ws[1]:\n        cell.font = Font(bold=True)
+    for row in rows:\n        ws.append([row.get(h, "") for h in CLAIM_HEADERS])
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = ws.dimensions
     for col in ws.columns:
