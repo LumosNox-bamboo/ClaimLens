@@ -86,8 +86,15 @@ def cmd_verify(args: argparse.Namespace) -> int:
 
 
 def cmd_diagnose(args: argparse.Namespace) -> int:
-    local_dir = args.path / "LOCAL_ONLY" if (args.path / "LOCAL_ONLY").is_dir() else args.path
-    safe_dir = args.path / "CODEX_SAFE" if local_dir.name == "LOCAL_ONLY" else args.out
+    if args.path.name == "01_EXTRACTION_DIAGNOSTICS":
+        local_dir = args.path / "LOCAL_ONLY"
+        safe_dir = args.path / "CODEX_SAFE"
+    elif args.path.name == "LOCAL_ONLY":
+        local_dir = args.path
+        safe_dir = args.path.parent / "CODEX_SAFE"
+    else:
+        local_dir = args.path
+        safe_dir = args.out
     out = write_codex_safe(local_dir, safe_dir)
     reject_unsafe_codex_input(out)
     print(f"CODEX_SAFE structural diagnostics: {out}")
@@ -115,7 +122,8 @@ def cmd_batch(args: argparse.Namespace) -> int:
         f"{failures} failure(s); no network access performed"
     )
     print(f"LOCAL ONLY identity map: {args.out / '00_LOCAL_ONLY' / 'candidate_map.xlsx'}")
-    print(f"Extraction diagnostics: {args.out / '01_EXTRACTION_DIAGNOSTICS'}")
+    print(f"LOCAL ONLY extraction diagnostics: {args.out / '01_EXTRACTION_DIAGNOSTICS' / 'LOCAL_ONLY'}")
+    print(f"CODEX_SAFE diagnostics: {args.out / '01_EXTRACTION_DIAGNOSTICS' / 'CODEX_SAFE' / 'corpus_summary.json'}")
     print(f"Codex-ready redacted package: {args.out / '02_CODEX_READY'}")
     return 1 if failures else 0
 
