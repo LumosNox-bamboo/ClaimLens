@@ -50,3 +50,14 @@ def test_special_award_wording_is_kept():
     claims = extract_claims(text, "C-SYN")
     assert len(claims) == 2
     assert all(c.claim_type == "award" for c in claims)
+
+
+def test_doi_terminal_number_is_not_treated_as_list_item():
+    text = (
+        "代表性论文 1. Synthetic study. Example Medicine. 2026. "
+        "DOI: 10.1186/s12916-026-04851-7. "
+        "2. Another synthetic study. Example Journal. 2025."
+    )
+    claims = extract_claims(text, "C-SYN")
+    assert len(claims) == 2
+    assert claims[0].doi == "10.1186/s12916-026-04851-7"
