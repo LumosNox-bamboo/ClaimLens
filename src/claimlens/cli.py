@@ -6,8 +6,9 @@ import sys
 from pathlib import Path
 
 from .batch import run_batch
-from .claims import extract_claims
+from .claims import extract_claims_v2
 from .exporters import export_claims
+from .diagnostics import reject_unsafe_codex_input, write_codex_safe
 from .identity import ensure_salt
 from .identity import candidate_id as make_candidate_id
 from .models import PrivacyMode
@@ -36,13 +37,14 @@ def cmd_extract(args: argparse.Namespace) -> int:
             text = extract_text(path)
             cid = make_candidate_id(path, salt)
             _, findings = redact_text(text, args.privacy)
-            claims = extract_claims(text, cid, path.suffix)
+            claims, diagnostics = extract_claims_v2(text, cid, path.suffix)
             all_claims.extend(claims)
+            withheld = sum(1 for d in diagnostics if d.get("action") != "PASS")
             image_count = embedded_image_count(path)
             privacy_manifest.append({"candidate_id": cid, "source_type": path.suffix.lower(), "pii_detected": pii_summary(findings), "embedded_images": image_count, "image_warning": bool(image_count), "claims": len(claims)})
             if image_count:
                 print(f"privacy warning {cid}: source document contains embedded image(s); images are not verifier inputs")
-            print(f"processed {cid}: {len(claims)} claim(s)")
+            print(f"processed {cid}: {len(claims)} accepted claim(s), {withheld} item(s) withheld by extraction quality gate")
         except Exception as exc:
             print(f"error processing one {path.suffix.lower()} document: {exc}", file=sys.stderr)
     paths = export_claims(all_claims, args.out)
@@ -83,6 +85,33 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_diagnose(args: argparse.Namespace) -> int:
+    if args.path.name == "01_EXTRACTION_DIAGNOSTICS":
+        local_dir = args.path / "LOCAL_ONLY"
+        safe_dir = args.path / "CODEX_SAFE"
+    elif args.path.name == "LOCAL_ONLY":
+        local_dir = args.path
+        safe_dir = args.path.parent / "CODEX_SAFE"
+    else:
+        local_dir = args.path
+        safe_dir = args.out
+    out = write_codex_safe(local_dir, safe_dir)
+    reject_unsafe_codex_input(out)
+    print(f"CODEX_SAFE structural diagnostics: {out}")
+    print("Privacy guard passed: no raw CV, identity map, paths, or claim content included.")
+    return 0
+
+
+def cmd_guard_codex(args: argparse.Namespace) -> int:
+    try:
+        reject_unsafe_codex_input(args.path)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print("CODEX_SAFE input accepted by privacy guard.")
+    return 0
+
+
 def cmd_batch(args: argparse.Namespace) -> int:
     salt = ensure_salt(args.salt_file)
     candidates, claims, failures = run_batch(
@@ -93,7 +122,9 @@ def cmd_batch(args: argparse.Namespace) -> int:
         f"{failures} failure(s); no network access performed"
     )
     print(f"LOCAL ONLY identity map: {args.out / '00_LOCAL_ONLY' / 'candidate_map.xlsx'}")
-    print(f"Codex-ready redacted package: {args.out / '01_CODEX_READY'}")
+    print(f"LOCAL ONLY extraction diagnostics: {args.out / '01_EXTRACTION_DIAGNOSTICS' / 'LOCAL_ONLY'}")
+    print(f"CODEX_SAFE diagnostics: {args.out / '01_EXTRACTION_DIAGNOSTICS' / 'CODEX_SAFE' / 'corpus_summary.json'}")
+    print(f"Codex-ready redacted package: {args.out / '02_CODEX_READY'}")
     return 1 if failures else 0
 
 
@@ -143,6 +174,13 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument("--xlsx-node", type=Path, required=True)
     rp.add_argument("--xlsx-modules", type=Path, required=True)
     rp.set_defaults(func=cmd_report)
+    dg = sub.add_parser("diagnose", help="Build content-free CODEX_SAFE diagnostics from local extraction diagnostics")
+    dg.add_argument("path", type=Path)
+    dg.add_argument("--out", type=Path, default=Path("CODEX_SAFE"))
+    dg.set_defaults(func=cmd_diagnose)
+    cg = sub.add_parser("guard-codex", help="Fail closed unless a path is explicitly CODEX_SAFE")
+    cg.add_argument("path", type=Path)
+    cg.set_defaults(func=cmd_guard_codex)
     bt = sub.add_parser("batch", parents=[common])
     bt.add_argument(
         "--filename", default="简历.pdf",

@@ -7,8 +7,9 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
-from .claims import extract_claims
+from .claims import extract_claims_v2
 from .identity import candidate_id as make_candidate_id
+from .diagnostics import write_codex_safe
 from .parsers import embedded_image_count, extract_text
 from .privacy import detect_pii, pii_summary, redact_text
 
@@ -73,8 +74,12 @@ def run_batch(
     filename: str = "简历.pdf",
 ) -> tuple[int, int, int]:
     local_dir = out / "00_LOCAL_ONLY"
-    codex_dir = out / "01_CODEX_READY"
+    diagnostics_dir = out / "01_EXTRACTION_DIAGNOSTICS" / "LOCAL_ONLY"
+    safe_dir = out / "01_EXTRACTION_DIAGNOSTICS" / "CODEX_SAFE"
+    codex_dir = out / "02_CODEX_READY"
     local_dir.mkdir(parents=True, exist_ok=True)
+    diagnostics_dir.mkdir(parents=True, exist_ok=True)
+    safe_dir.mkdir(parents=True, exist_ok=True)
     codex_dir.mkdir(parents=True, exist_ok=True)
 
     candidates: list[BatchCandidate] = []
@@ -87,7 +92,29 @@ def run_batch(
         try:
             text = extract_text(path)
             _, findings = redact_text(text, privacy_mode)
-            claims = extract_claims(text, cid, path.suffix)
+            claims, diagnostics = extract_claims_v2(text, cid, path.suffix)
+            review_items = [d for d in diagnostics if d.get("action") == "REVIEW"]
+            dropped_items = [d for d in diagnostics if d.get("action") == "DROP"]
+            health_flags = []
+            if not claims:
+                health_flags.append("ZERO_EXTRACTION")
+            if len(claims) > 60:
+                health_flags.append("EXTREME_CLAIM_COUNT")
+            if review_items:
+                health_flags.append("EXTRACTION_REVIEW_REQUIRED")
+            extraction_pass = not health_flags
+            diagnostic_payload = {
+                "candidate_id": cid,
+                "claims_accepted": len(claims),
+                "items_review": len(review_items),
+                "items_dropped": len(dropped_items),
+                "health_flags": health_flags,
+                "ready_for_verification": extraction_pass,
+                "diagnostics": diagnostics,
+            }
+            (diagnostics_dir / f"{cid}.extraction.json").write_text(
+                json.dumps(diagnostic_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
             public_claims = []
             for claim in claims:
                 if claim.verification_scope != "public":
@@ -120,9 +147,10 @@ def run_batch(
                     "contact_fields_included": False,
                 },
             }
-            (codex_dir / f"{cid}.claims.json").write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
+            if extraction_pass:
+                (codex_dir / f"{cid}.claims.json").write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
             image_count = embedded_image_count(path)
             candidates.append(
                 BatchCandidate(
@@ -157,6 +185,7 @@ def run_batch(
             )
 
     _write_local_map(candidates, local_dir / "candidate_map.xlsx")
+    write_codex_safe(diagnostics_dir, safe_dir)
     summary = {
         "source_root": str(root),
         "cv_filename": filename,
@@ -164,6 +193,8 @@ def run_batch(
         "processed": len(candidates) - failures,
         "failed": failures,
         "claims_extracted": total_claims,
+        "extraction_v2": True,
+        "verification_packages_are_quality_gated": True,
         "network_access_performed": False,
         "codex_ready_contains_local_identity_map": False,
         "note": "00_LOCAL_ONLY contains identifying mappings and must remain local.",
@@ -172,7 +203,7 @@ def run_batch(
         json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     (codex_dir / "README_PRIVACY.txt").write_text(
-        "CODEX_READY contains pseudonymous candidate IDs, application IDs, and public-scope "
+        "02_CODEX_READY contains only candidates that passed the extraction quality gate. It contains pseudonymous candidate IDs, application IDs, and public-scope "
         "verification claims only. It excludes original CV files, raw extracted text, local "
         "paths, contact details, and the local candidate-name mapping. Review before sharing.\n",
         encoding="utf-8",

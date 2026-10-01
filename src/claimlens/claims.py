@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 
 from .models import Claim
+from .extraction import classify_item, quality_gate, reconstruct_document
 from .privacy import detect_pii, redact_text
 
 YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
@@ -259,3 +260,36 @@ def extract_claims(text: str, candidate_id: str, source_file: str = "") -> list[
 
         # profile, skills and projects are intentionally excluded.
     return claims
+
+
+def extract_claims_v2(text: str, candidate_id: str, source_file: str = "") -> tuple[list[Claim], list[dict[str, object]]]:
+    """Layout-tolerant extraction for heterogeneous CVs.
+
+    Returns accepted claims plus local-only diagnostics. REVIEW items are withheld
+    from outbound verification until extraction quality is resolved.
+    """
+    claims: list[Claim] = []
+    diagnostics: list[dict[str, object]] = []
+    seen: set[tuple[str, str]] = set()
+    for item in reconstruct_document(text):
+        claim_type = classify_item(item)
+        if not claim_type:
+            continue
+        decision = quality_gate(item, claim_type)
+        key = (claim_type, re.sub(r"\W+", "", item.text).casefold())
+        if key in seen:
+            diagnostics.append({"section": item.section, "action": "DROP", "reasons": ["POSSIBLE_DUPLICATE"], "preview": item.text[:160]})
+            continue
+        seen.add(key)
+        diagnostics.append({"section": item.section, "claim_type": claim_type, "action": decision.action, "reasons": decision.reasons, "preview": item.text[:160]})
+        if decision.action != "PASS":
+            continue
+        scope = "self_reported" if claim_type == "working_paper" else "public"
+        priority = "low" if claim_type == "working_paper" else ("high" if claim_type in {"publication", "patent", "award", "competition"} else "medium")
+        kwargs: dict[str, str] = {"verification_scope": scope, "verification_priority": priority}
+        if claim_type == "publication":
+            kwargs["title"] = item.text[:500]
+        if claim_type == "award":
+            kwargs["award_name"] = item.text[:300]
+        claims.append(_make_claim(candidate_id, len(claims) + 1, claim_type, item.text, source_file, item.section, **kwargs))
+    return claims, diagnostics
