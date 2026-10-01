@@ -8,6 +8,7 @@ from pathlib import Path
 from .batch import run_batch
 from .claims import extract_claims_v2
 from .exporters import export_claims
+from .diagnostics import reject_unsafe_codex_input, write_codex_safe
 from .identity import ensure_salt
 from .identity import candidate_id as make_candidate_id
 from .models import PrivacyMode
@@ -84,6 +85,26 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_diagnose(args: argparse.Namespace) -> int:
+    local_dir = args.path / "LOCAL_ONLY" if (args.path / "LOCAL_ONLY").is_dir() else args.path
+    safe_dir = args.path / "CODEX_SAFE" if local_dir.name == "LOCAL_ONLY" else args.out
+    out = write_codex_safe(local_dir, safe_dir)
+    reject_unsafe_codex_input(out)
+    print(f"CODEX_SAFE structural diagnostics: {out}")
+    print("Privacy guard passed: no raw CV, identity map, paths, or claim content included.")
+    return 0
+
+
+def cmd_guard_codex(args: argparse.Namespace) -> int:
+    try:
+        reject_unsafe_codex_input(args.path)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print("CODEX_SAFE input accepted by privacy guard.")
+    return 0
+
+
 def cmd_batch(args: argparse.Namespace) -> int:
     salt = ensure_salt(args.salt_file)
     candidates, claims, failures = run_batch(
@@ -119,6 +140,13 @@ def build_parser() -> argparse.ArgumentParser:
     vf = sub.add_parser("verify")
     vf.add_argument("path", type=Path)
     vf.set_defaults(func=cmd_verify)
+    dg = sub.add_parser("diagnose", help="Build content-free CODEX_SAFE diagnostics from local extraction diagnostics")
+    dg.add_argument("path", type=Path)
+    dg.add_argument("--out", type=Path, default=Path("CODEX_SAFE"))
+    dg.set_defaults(func=cmd_diagnose)
+    cg = sub.add_parser("guard-codex", help="Fail closed unless a path is explicitly CODEX_SAFE")
+    cg.add_argument("path", type=Path)
+    cg.set_defaults(func=cmd_guard_codex)
     bt = sub.add_parser("batch", parents=[common])
     bt.add_argument(
         "--filename", default="简历.pdf",
